@@ -1,0 +1,104 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="rtl">
+<head>
+	<title>Askola</title>
+	<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+        <script type="text/javascript" src="js/jquery.min.js"></script> <!-- Required, SchoolOverflow is jQuery dependant -->
+        <script type="text/javascript" src="js/items.js"></script>
+        <link href="http://fonts.googleapis.com/earlyaccess/alefhebrew.css" rel="stylesheet" type="text/css" />
+        <link href="css/stylesheet.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<img src="img/logo.png" style="position:absolute; top:110px; left:10%; width:120px;">
+<navbar class="topbar">
+<button id="open_newquestion_form">שאלה חדשה</button>
+
+<span id="user_area">
+    <span id="open_signin_form">התחבר</span>
+    <a href="signup.html">הירשם</a>
+</span>
+</navbar>
+<navbar class="pagesbar">
+<ul>
+<li data-page="questions">שאלות</li>
+<li data-page="tags">תגיות</li>
+<li data-page="trophies">גביעים</li>
+<li data-page="people">משתמשים</li>
+</ul>
+</navbar>
+<section id="newquestion_form" class="closed">
+<div>
+    <p><label>כותרת:</label><input type="text" data-param-name="title" /></p>
+    <p><label>תוכן:</label><div data-param-name="content" contenteditable="true"></div></p>
+    <p><label>נושאים:</label><input type="text" data-param-name="tags" /></p>
+    <button id="post_newquestion">הוסף</button>
+</div>
+</section>
+<section id="signin_form" class="closed">
+    <div>
+    <p><label>אימייל:</label><input type="email" data-param-name="email" /></p>
+    <p><label>סיסמא:</label><input type="password" data-param-name="password" /></p>
+    <button id="post_signin">התחבר</button>
+    </div>
+</section>
+<article id="display">
+</article>
+
+<script type="text/javascript">
+    var connection, questionCollection;
+function main() {
+    connection = Askola.getOnGoingConnection();
+
+    questionCollection = new Askola.QuestionCollectionLoader(/* no tags, default */);
+    questionCollection.appendTo("article");
+    questionCollection.load();
+
+    createOpenerFor('#open_signin_form', '#signin_form');
+    console.log(renderParams('#signin_form'));
+    $('#post_signin').click(function () {
+        $('#post_signin').addClass("loading");
+        var login_details = renderParams('#signin_form');
+        connection.signin(login_details['email'], login_details['password'], function (responseCode) {
+            $('#post_signin').removeClass("loading");
+            if (responseCode == 1) {
+                $('#user_area').html(login_details['email']);
+                $('#signin_form').addClass("closed").removeClass("opened");
+            }
+        });
+    });
+
+    createOpenerFor('#open_newquestion_form', '#newquestion_form');
+
+    createSubmitFor('#post_newquestion', '#newquestion_form', '/addquestion');
+}
+function createOpenerFor(opener, form) {
+    $(opener).click(function () {
+        $(form).toggleClass("closed").toggleClass("opened");
+    });
+}
+function createSubmitFor(btn, form, action) {
+    $(btn).click(function () {
+        $(btn).addClass("loading")
+        connection.postSecure(action, renderParams(form), function (response) {
+            $(form).find("[data-param-name]").val('').html('')
+            $(btn).removeClass("loading");
+            if (response.responseCode == 1) {
+                $(form).addClass("closed").removeClass("opened")
+                questionCollection.reload();
+            }
+        });
+    });
+}
+function renderParams(dom){
+    var data = {}
+    $(dom).find("[data-param-name]").each(function () {
+        var value = this.value || this.innerHTML;
+        data[this.getAttribute('data-param-name')] = value;
+    });
+    return data;
+}
+$(main);
+</script>
+</body>
+</html>
